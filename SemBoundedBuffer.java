@@ -61,10 +61,19 @@ class SemBoundedBuffer extends BoundedBuffer {
 
         // Enter mutual exclusion and enforce synchronisation semantics
         // using semaphores.
-            value = super.get();
+        done = fullSlots.tryAcquire();
+        if (done) {
+            synchronized (this) {
+                value = super.get();
+                // Leave mutual exclusion and enforce synchronisation semantics
+                // using semaphores.
+            }
+            emptySlots.release();
+        }
+        else {
+            return null;
+        }
 
-        // Leave mutual exclusion and enforce synchronisation semantics
-        // using semaphores.
        return value;
     }
 
@@ -75,10 +84,19 @@ class SemBoundedBuffer extends BoundedBuffer {
 
         // Enter mutual exclusion and enforce synchronisation semantics
         // using semaphores.
-            super.put(value);
+        done = emptySlots.tryAcquire();
+        if (done) {
+            synchronized (this) {
+                super.put(value);
+                // Leave mutual exclusion and enforce synchronisation semantics
+                // using semaphores.
+            }
+            fullSlots.release();
+        }
+        else {
+            return false;
+        }
 
-        // Leave mutual exclusion and enforce synchronisation semantics
-        // using semaphores.
         return true;
     }
 
