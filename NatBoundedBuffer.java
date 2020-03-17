@@ -67,12 +67,18 @@ class NatBoundedBuffer extends BoundedBuffer {
         Object value = null;
 
         // Enter mutual exclusion
+        synchronized (this) {
             
             // Signal or broadcast that an empty slot is available (if needed)
+            if (this.size == this.maxSize) {
+                notify();
+            }
 
             value=super.get();
 
             // Leave mutual exclusion
+        }
+
         return value;
     }
 
@@ -82,12 +88,17 @@ class NatBoundedBuffer extends BoundedBuffer {
         boolean done;
 
         // Enter mutual exclusion
-            
+        synchronized (this) {
             // Signal or broadcast that a full slot is available (if needed)
+            if (this.size == 0) {
+                notify();
+            }
 
             done=super.put(value);
 
             // Leave mutual exclusion
+        }
+
         return done;
     }
 
