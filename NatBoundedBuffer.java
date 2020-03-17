@@ -114,17 +114,37 @@ class NatBoundedBuffer extends BoundedBuffer {
         boolean interrupted = true;
 
         // Enter mutual exclusion
-
+        synchronized (this) {
             // Wait until a full slot is available but wait
             // no longer than the given deadline
-    
+            if (this.size == 0) {
+                try {
+                    now = System.currentTimeMillis();
+                    timeout = deadline - now;
+                    wait(timeout);
+                    if (System.currentTimeMillis() > now + timeout) {
+                        done = false;
+                    }
+                    else {
+                        done = true;
+                    }
+                } catch (InterruptedException e) {};
+            }
+            else {
+                done = true;
+            }
+
             if (!done) return null;
 
             // Signal or broadcast that an full slot is available (if needed)
+            if (this.size == this.maxSize) {
+                notify();
+            }
 
             value = super.get();
 
-            // Leave mutual exclusion 
+            // Leave mutual exclusion
+        }
         return value;
     }
 
@@ -139,18 +159,38 @@ class NatBoundedBuffer extends BoundedBuffer {
         long    now;
 
         // Enter mutual exclusion
-
+        synchronized (this) {
             // Wait until a empty slot is available but wait
             // no longer than the given deadline
-    
+            if (this.size == this.maxSize) {
+                try {
+                    now = System.currentTimeMillis();
+                    timeout = deadline - now;
+                    wait(timeout);
+                    if (System.currentTimeMillis() > now + timeout) {
+                        done = false;
+                    }
+                    else {
+                        done = true;
+                    }
+                } catch (InterruptedException e) {};
+            }
+            else {
+                done = true;
+            }
+
             if (!done) return false;
 
             // Signal or broadcast that an empty slot is available (if needed)
+            if (this.size == 0) {
+                notify();
+            }
 
             super.put(value);
 
             // Leave mutual exclusion and enforce synchronisation semantics
             // using semaphores.
+        }
         return true;
     }
 }
