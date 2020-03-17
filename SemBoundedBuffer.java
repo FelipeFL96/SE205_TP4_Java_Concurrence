@@ -9,6 +9,8 @@ class SemBoundedBuffer extends BoundedBuffer {
     SemBoundedBuffer (int maxSize) {
         super(maxSize);
         // Initialize the synchronization attributes
+        emptySlots = new Semaphore(maxSize);
+        fullSlots = new Semaphore(0);
     }
 
     // Extract an element from buffer. If the attempted operation is
@@ -18,10 +20,16 @@ class SemBoundedBuffer extends BoundedBuffer {
 
         // Enter mutual exclusion and enforce synchronisation semantics
         // using semaphores.
+        try {
+            fullSlots.acquire();
+        } catch (InterruptedException e) {};
+        synchronized (this) {
             value = super.get();
+            // Leave mutual exclusion and enforce synchronisation semantics
+            // using semaphores.
+        }
+        emptySlots.release();
 
-        // Leave mutual exclusion and enforce synchronisation semantics
-        // using semaphores.
         return value;
     }
 
@@ -32,10 +40,16 @@ class SemBoundedBuffer extends BoundedBuffer {
 
         // Enter mutual exclusion and enforce synchronisation semantics
         // using semaphores.
+        try {
+            emptySlots.acquire();
+        } catch (InterruptedException e) {};
+        synchronized (this) {
             done = super.put(value);
-
             // Leave mutual exclusion and enforce synchronisation semantics
             // using semaphores.
+        }
+        fullSlots.release();
+
         return done;
     }
 
