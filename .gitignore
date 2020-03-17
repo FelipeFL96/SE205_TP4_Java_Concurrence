@@ -1,0 +1,2 @@
+# ignore Java executables
+*.class
