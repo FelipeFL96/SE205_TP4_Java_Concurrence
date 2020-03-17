@@ -15,15 +15,25 @@ class NatBoundedBuffer extends BoundedBuffer {
         Object value;
 
         // Enter mutual exclusion
+        synchronized (this) {
             
             // Wait until there is a full slot available.
+            while (this.size == 0) {
+                try {
+                    wait();
+                } catch (InterruptedException e) {}
+            }
 
             // Signal or broadcast that an empty slot is available (if needed)
+            if (this.size == this.maxSize) {
+                notify();
+            }
 
             value = super.get();
 
             // Leave mutual exclusion and enforce synchronisation semantics
             // using semaphores.
+        }
         return value;
     }
 
@@ -31,15 +41,23 @@ class NatBoundedBuffer extends BoundedBuffer {
     // not possible immedidately, the method call blocks until it is.
     boolean put(Object value) {
         // Enter mutual exclusion
-            
+        synchronized (this) {
             // Wait until there is a empty slot available.
-
+            while (this.size == this.maxSize) {
+                try {
+                    wait();
+                } catch (InterruptedException e) {};
+            }
             // Signal or broadcast that a full slot is available (if needed)
+            if (this.size == 0) {
+                notify();
+            }
 
             super.put(value);
 
             // Leave mutual exclusion and enforce synchronisation semantics
             // using semaphores.
+        }
         return true;
     }
 
